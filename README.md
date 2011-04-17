@@ -5,9 +5,9 @@ This library is free software.
 
 ## Files
 
-*   OAuth2MacToken.php       : Generate Signature,AuthZ Header
-*   OAuth2MacTokenClient.php : Access Resource Server using curl
-*   OAuth2MacTokenServer.php : Validate Request and Generate Response Header
+*   OAuth2MacTokenUtil.php       : Generate Signature,AuthZ Header
+*   OAuth2MacTokenClient.php : Sample Client Class
+*   OAuth2MacTokenServer.php : Sample Resource Server Class
 
 ## Usage
 
