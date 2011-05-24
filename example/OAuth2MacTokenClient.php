@@ -15,6 +15,7 @@ class OAuth2MacTokenClient {
     private $_token;
     private $_secret;
     private $_algorithm;
+    private $_iss;
     private $_timestamp = null;
     private $_nonce = null;
     // CURL Info
@@ -102,10 +103,11 @@ class OAuth2MacTokenClient {
         return json_decode($this->_http_body);
     }
 
-    public function setMacTokenCredential($token, $secret, $algorithm='hmac-sha1') {
+    public function setMacTokenCredential($token, $secret, $algorithm='hmac-sha1', $iss) {
         $this->_token = $token;
         $this->_secret = $secret;
         $this->_algorithm = $algorithm;
+        $this->_iss = $iss;
         return true;
     }
 
@@ -155,9 +157,9 @@ class OAuth2MacTokenClient {
         $this->_responseheader = true;
     }
 
-    public function sendRequest($method, $url, $entitybody=null, $headers = array()) {
+    public function sendRequest($method, $url, $entitybody=null, $ext=null, $headers = array()) {
 
-        $headers[] = OAuth2MacTokenUtil::genetateAuthZHeader($this->_token, $this->_secret, $this->_algorithm, $this->_timestamp, $this->_nonce, $method, $url, $entitybody);
+        $headers[] = OAuth2MacTokenUtil::genetateAuthZHeader($this->_token, $this->_secret, $this->_algorithm, $this->_iss, $this->_nonce, $method, $url, $entitybody, $ext);
 
         $this->_http_info = array();
         $this->_http_code = null;

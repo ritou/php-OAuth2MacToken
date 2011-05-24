@@ -42,9 +42,10 @@ try {
             $token_res = $client->getLastResponse();
             $_SESSION['state'] = 2;
             $_SESSION['atoken'] = $access_token_info->access_token;
-            $_SESSION['secret'] = $access_token_info->secret;
+            $_SESSION['secret'] = $access_token_info->mac_key;
             $_SESSION['rtoken'] = $access_token_info->refresh_token;
-            $_SESSION['algorithm'] = $access_token_info->algorithm;
+            $_SESSION['algorithm'] = $access_token_info->mac_algorithm;
+            $_SESSION['iss'] = time();
         }
 
         if (isset($_GET['refresh']) && $_GET['refresh'] == 1) {
@@ -54,8 +55,9 @@ try {
             $token_res = $client->getLastResponse();
             if (isset($access_token_info->access_token)) {
                 $_SESSION['atoken'] = $access_token_info->access_token;
-                $_SESSION['secret'] = $access_token_info->secret;
-                $_SESSION['algorithm'] = $access_token_info->algorithm;
+                $_SESSION['secret'] = $access_token_info->mac_key;
+                $_SESSION['algorithm'] = $access_token_info->mac_algorithm;
+                $_SESSION['iss'] = time();
             } else {
                 $_SESSION = array();
                 header("Location : ./client.php");
@@ -64,7 +66,7 @@ try {
 
         // Resource Access
         $method = "GET";
-        $client->setMacTokenCredential($_SESSION['atoken'], $_SESSION['secret'], $_SESSION['algorithm']);
+        $client->setMacTokenCredential($_SESSION['atoken'], $_SESSION['secret'], $_SESSION['algorithm'], $_SESSION['iss']);
         $client->enableResponseHeader(); // for debug
         $client->sendRequest($method, $resource_endpoint);
         $send_header = $client->getLastRequestHeader();
