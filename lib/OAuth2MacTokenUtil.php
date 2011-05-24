@@ -7,86 +7,63 @@ class OAuth2MacTokenUtil {
 
     /**
      * Generate Authorization Request Header String
-     * @param string $token
-     * @param string $secret
-     * @param string $algorithm
-     * @param int $timestamp
+     * @param string $key_id MAC key identifier
+     * @param string $key MAC key
+     * @param string $algorithm MAC algorithm
+     * @param int $iss Issue time
      * @param string $nonce
      * @param string $method
      * @param string $url
-     * @param string $entitybody
+     * @param string $entitybody request payload body
+     * @param string $ext "ext" "Authorization" request header field attribute
      * @return string
      */
-    public static function genetateAuthZHeader($token, $secret, $algorithm, $timestamp=null, $nonce=null, $method, $url, $entitybody=null) {
+    public static function genetateAuthZHeader($key_id, $key, $algorithm, $iss, $nonce=null, $method, $url, $entitybody=null, $ext=null) {
 
-        // Check required params
-        if (empty($token) || empty($secret) || empty($algorithm) || empty($method) || empty($url)) {
-            throw new Exception('Missing Params');
-        }
-
-        // Process timestamp
-        if (empty($timestamp)) {
-            $timestamp = OAuth2Util::generateTimestamp();
-        } else {
-            // ToDo : check valid timestamp
-            if (!is_numeric($timestamp)) {
-                throw new Exception('Invalid Timestamp');
-            }
+        // Check MAC Credentials
+        if (empty($key_id) || empty($key) || empty($algorithm) || (empty($nonce) && empty($iss))) {
+            throw new Exception('Missing MAC Credentials');
         }
 
         // Process nonce
         if (empty($nonce)) {
-            $nonce = OAuth2Util::generateNonce();
+            $nonce = OAuth2Util::generateNonceStr($iss);
+        }
+
+        // Check request data
+        if (empty($method) || empty($url)) {
+            throw new Exception('Missing Params');
         }
 
         // Process entity-body
         $bodyhash = (!empty($entitybody)) ? self::generateBodyhash($entitybody, $algorithm) : "";
-        $signature = self::generateSignature($token, $secret, $algorithm, $timestamp, $nonce, $method, $url, $entitybody);
-        return self::_generateAuthZHeaderStr($token, $timestamp, $nonce, $bodyhash, $signature);
+        $mac = self::generateMac($key_id, $key, $algorithm, $iss, $nonce, $method, $url, $bodyhash, $ext);
+        return self::_buildAuthZHeaderStr($key_id, $nonce, $bodyhash, $ext, $mac);
     }
 
     /**
-     * Generate Signature String
-     * @param string $token
-     * @param string $secret
-     * @param string $algorithm
-     * @param int $timestamp
-     * @param string $nonce
-     * @param string $method
-     * @param string $url
-     * @param string $entitybody
-     * @return string
+     * Generate MAC String
      */
-    public static function generateSignature($token, $secret, $algorithm, $timestamp, $nonce, $method, $url, $entitybody=null) {
+    public static function generateMac($key_id, $key, $algorithm, $iss, $nonce=null, $method, $url, $bodyhash=null, $ext=null) {
 
-        // Check required params
-        if (empty($token) || empty($secret) || empty($algorithm) || empty($method) || empty($url)) {
-            throw new Exception('Missing Params');
-        }
-
-        // Process timestamp
-        if (empty($timestamp)) {
-            $timestamp = OAuth2Util::generateTimestamp();
-        } else {
-            // ToDo : check valid timestamp
-            if (!is_numeric($timestamp)) {
-                throw new Exception('Invalid Timestamp');
-            }
+        // Check MAC Credentials
+        if (empty($key_id) || empty($key) || empty($algorithm) || (empty($nonce) && empty($iss))) {
+            throw new Exception('Missing MAC Credentials');
         }
 
         // Process nonce
         if (empty($nonce)) {
-            $nonce = OAuth2Util::generateNonce();
+            $nonce = OAuth2Util::generateNonceStr($iss);
         }
 
-        // Process entity-body
-        $bodyhash = (!empty($entitybody)) ? self::generateBodyhash($entitybody, $algorithm) : "";
+        // Check request data
+        if (empty($method) || empty($url)) {
+            throw new Exception('Missing Params');
+        }
 
         $host = "";
         $port = "";
-        $path = "";
-        $host = "";
-        $params = array();
+        $request_uri = "";
         $urlinfo = parse_url($url);
 
         if (!$urlinfo) {
@@ -105,20 +82,17 @@ class OAuth2MacTokenUtil {
                     $port = '80';
                 }
             }
-            $path = $urlinfo['path'];
-            parse_str($urlinfo['query'], $params);
+            $request_uri = substr($url,strpos($url,$urlinfo['path']));
         }
 
-        $basestr = $token . "\n" .
-                $timestamp . "\n" .
-                $nonce . "\n" .
-                $bodyhash . "\n" .
+        $basestr = $nonce . "\n" .
                 $method . "\n" .
+                $request_uri . "\n" .
                 $host . "\n" .
                 $port . "\n" .
-                $path . "\n" .
-                self::_generateNormalizedParamString($params);
-        return self::_buildSignature($basestr, $secret, $algorithm);
+                $bodyhash . "\n" .
+                $ext . "\n";
+        return self::_calculateMac($basestr, $key, $algorithm);
     }
 
     /**
@@ -145,50 +119,29 @@ class OAuth2MacTokenUtil {
     }
 
     /**
-     * Generate Normalized Parameter String
-     * @param array $params
-     * @return string
-     */
-    private static function _generateNormalizedParamString($params) {
-        if (!empty($params)) {
-            $keys = array_map(array('OAuth2Util', 'urlencodeRFC3986'), array_keys($params));
-            $values = array_map(array('OAuth2Util', 'urlencodeRFC3986'), array_values($params));
-            $enc_params = array_combine($keys, $values);
-            uksort($enc_params, 'strnatcmp');
-            $paramstr = null;
-            foreach ($enc_params as $key => $value) {
-                $paramstr .= $key . "=" . $value . "\n";
-            }
-        } else {
-            $paramstr = "\n";
-        }
-        return $paramstr;
-    }
-
-    /**
      * Generate Signature String from Signature Base String
      * @param string $basestr
      * @param string $secret
      * @param string $algorithm
      * @return string
      */
-    private static function _buildSignature($basestr, $secret, $algorithm) {
-        $signature = "";
+    private static function _calculateMac($basestr, $key, $algorithm) {
+        $mac = "";
         switch ($algorithm) {
             case 'hmac-sha-1':
                 // hmac-sha-1
-                $signature = base64_encode(hash_hmac('sha1', $basestr, $secret, true));
+                $mac = base64_encode(hash_hmac('sha1', $basestr, $key, true));
                 break;
             case 'hmac-sha-256':
                 // hmac-sha-256
-                $signature = base64_encode(hash_hmac('sha256', $basestr, $secret, true));
+                $mac = base64_encode(hash_hmac('sha256', $basestr, $key, true));
                 break;
             // Please add other algorithm to here
             default:
                 throw new Exception('Unknown Algorithm');
-            //break;
+                //break;
         }
-        return $signature;
+        return $mac;
     }
 
     /**
@@ -200,14 +153,16 @@ class OAuth2MacTokenUtil {
      * @param string $signature
      * @return string
      */
-    private static function _generateAuthZHeaderStr($token, $timestamp, $nonce, $bodyhash, $signature) {
-        $header = 'Authorization: MAC token="' . $token . '",';
-        $header .= 'timestamp="' . $timestamp . '",';
+    private static function _buildAuthZHeaderStr($key_id, $nonce, $bodyhash, $ext, $mac) {
+        $header = 'Authorization: MAC id="' . $key_id . '",';
         $header .= 'nonce="' . $nonce . '",';
         If (!empty($bodyhash)) {
             $header .= 'bodyhash="' . $bodyhash . '",';
         }
-        $header .= 'signature="' . $signature . '"';
+        If (!empty($ext)) {
+            $header .= 'ext="' . $ext . '",';
+        }
+        $header .= 'mac="' . $mac . '"';
         return $header;
     }
 
@@ -215,16 +170,24 @@ class OAuth2MacTokenUtil {
 
 class OAuth2Util {
 
-    public static function generateTimestamp() {
-        return time();
+    public static function generateAge($iss, $current = null) {
+        if (is_null($current)) {
+            $current = time();
+        }
+        return $current - $iss;
     }
 
-    public static function generateNonce() {
+    public static function generateRandStr() {
         $mt = microtime();
         $rand = mt_rand();
         return md5($mt . $rand);
     }
 
+    public static function generateNonceStr($iss, $current = null) {
+        return self::generateAge($iss, $current) . ":" . self::generateRandStr();
+    }
+
+    /*
     public static function urlencodeRFC3986($string) {
         if (is_string($string)) {
             return str_replace('%7E', '~', rawurlencode($string));
@@ -240,5 +203,5 @@ class OAuth2Util {
             return "";
         }
     }
-
+    */
 }

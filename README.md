@@ -1,29 +1,67 @@
 # php-OAuth2MacToken
 
-This is MAC Token Utility Class Library for OAuth 2.0.
+This is MAC Access Authentication Utility Class Library for OAuth 2.0.
 This library is free software.
 
 ## Files
 
-*   OAuth2MacTokenUtil.php       : Generate Signature,AuthZ Header
-*   OAuth2MacTokenClient.php : Sample Client Class
-*   OAuth2MacTokenServer.php : Sample Resource Server Class
+*   lib/OAuth2MacTokenUtil.php       : Calcurate MAC, and Generate AuthZ Header String
 
 ## Usage
 
-See sample files.
-*   utilitysample.php
-*   clientsample.php
-*   serversample.php
+This is sample code using this library.
+
+include_once("lib/OAuth2MacTokenUtil.php");
+
+$key_id = "samplekeyid";
+$key = "samplekey";
+$algorithm = "hmac-sha-1";
+$iss = time() - 1; // dummy
+$nonce = "";
+$method = "GET";
+$url = "http://example.com:80/request?foo=var";
+$entitybody = "";
+$ext = "a,b,c";
+
+print <<< EOF
+=== Input Parameters ===
+key_id = "{$key_id}";
+key = "{$key}";
+algorithm = "{$algorithm}";
+iss = {$iss}; // dummy
+nonce = "{$nonce}";
+method = "{$method}";
+url = "{$url}";
+entitybody = "{$entitybody}";
+ext = "{$ext}";
+=== Input Parameters ===
+EOF;
+
+print "\n";
+
+print OAuth2MacTokenUtil::genetateAuthZHeader(
+                $key_id,
+                $key,
+                $algorithm,
+                $iss,
+                $nonce,
+                $method,
+                $url,
+                $entitybody,
+                $ext
+);
+
+Sample is here.
+[sample.php](http://www8322u.sakura.ne.jp/php-OAuth2MacToken/sample.php)
 
 ## Author
 
-ritou 
-[Blog](http://d.hatena.ne.jp/ritou)
-ritou.06 _at_ gmail.com
+*   [@ritou](http://twitter.com/ritou)
+*   [Blog](http://d.hatena.ne.jp/ritou)
+*   ritou.06 _at_ gmail.com
 
 ## References
 
-*   [OAuth 2.0](http://tools.ietf.org/wg/oauth/draft-ietf-oauth-v2/)
-*   [HTTP Authentication: MAC Authentication(Draft 2)](http://tools.ietf.org/html/draft-hammer-oauth-v2-mac-token-02)
-*   [Slideshare : OAuth 2.0 MAC Authentication (Japanese)](http://www.slideshare.net/ritou/oauth-20-mac-authentication)
+*   [IETF WG : OAuth 2.0](http://tools.ietf.org/wg/oauth/draft-ietf-oauth-v2/)
+*   [HTTP Authentication: MAC Access Authentication](http://tools.ietf.org/html/draft-ietf-oauth-v2-http-mac-00)
+*   [Blog : MAC Access Authenticationの仕様をキャッチアップ (Japanese)](http://d.hatena.ne.jp/ritou/20110515/1305396837)

@@ -7,27 +7,36 @@ require_once '../OAuth2MacTokenUtil.php';
  */
 class OAuth2UtilTest extends PHPUnit_Framework_TestCase {
 
-    public function testGenerateTimestamp() {
+    public function testGenerateAge() {
         for ($i = 0; $i < 10000; $i++) {
-            $ts_before = time();
-            $ts = OAuth2Util::generateTimestamp();
-            $ts_after = time();
+            $ts = OAuth2Util::generateAge(time() - 1);
             $this->assertTrue(is_int($ts));
-            $this->assertGreaterThanOrEqual($ts_before, $ts);
-            $this->assertGreaterThanOrEqual($ts, $ts_after);
+            $this->assertGreaterThanOrEqual(1, $ts);
+            $this->assertGreaterThanOrEqual($ts, 2);
         }
     }
 
-    public function testGenerateNonce() {
+    public function testGenerateRandStr() {
+        $rand_array = array();
+        for ($i = 0; $i < 10000; $i++) {
+            $rand_array[] = OAuth2Util::generateRandStr();
+            $this->assertNotNull($rand_array[$i]);
+            $this->assertEquals(strlen($rand_array[$i]), 32);
+        }
+        $this->assertEquals($rand_array, array_unique($rand_array));
+    }
+
+    public function testGenerateNonceStr() {
         $nonce_array = array();
         for ($i = 0; $i < 10000; $i++) {
-            $nonce_array[] = OAuth2Util::generateNonce();
+            $nonce_array[] = OAuth2Util::generateNonceStr(time() - 10);
             $this->assertNotNull($nonce_array[$i]);
-            $this->assertEquals(strlen($nonce_array[$i]), 32);
+            $this->assertEquals(strlen($nonce_array[$i]), 35);
         }
         $this->assertEquals($nonce_array, array_unique($nonce_array));
     }
 
+    /*
     public function testUrlencodeRFC3986() {
         $this->assertEquals('abcABC123', OAuth2Util::urlencodeRFC3986('abcABC123'));
         $this->assertEquals('-._~', OAuth2Util::urlencodeRFC3986('-._~'));
@@ -49,5 +58,5 @@ class OAuth2UtilTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(' ', OAuth2Util::urldecodeRFC3986('%20'));
         $this->assertEquals("\x7F", OAuth2Util::urldecodeRFC3986('%7F'));
     }
-
+    */
 }
