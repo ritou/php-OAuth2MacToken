@@ -11,45 +11,45 @@ This library is free software.
 
 This is sample code using this library.
 
-include_once("lib/OAuth2MacTokenUtil.php");
+	include_once("lib/OAuth2MacTokenUtil.php");
 
-$key_id = "samplekeyid";
-$key = "samplekey";
-$algorithm = "hmac-sha-1";
-$iss = time() - 1; // dummy
-$nonce = "";
-$method = "GET";
-$url = "http://example.com:80/request?foo=var";
-$entitybody = "";
-$ext = "a,b,c";
+	$key_id = "samplekeyid";
+	$key = "samplekey";
+	$algorithm = "hmac-sha-1";
+	$iss = time() - 1; // dummy
+	$nonce = "";
+	$method = "GET";
+	$url = "http://example.com:80/request?foo=var";
+	$entitybody = "";
+	$ext = "a,b,c";
 
-print <<< EOF
-=== Input Parameters ===
-key_id = "{$key_id}";
-key = "{$key}";
-algorithm = "{$algorithm}";
-iss = {$iss}; // dummy
-nonce = "{$nonce}";
-method = "{$method}";
-url = "{$url}";
-entitybody = "{$entitybody}";
-ext = "{$ext}";
-=== Input Parameters ===
-EOF;
+	print <<< EOF
+	=== Input Parameters ===
+	key_id = "{$key_id}";
+	key = "{$key}";
+	algorithm = "{$algorithm}";
+	iss = {$iss}; // dummy
+	nonce = "{$nonce}";
+	method = "{$method}";
+	url = "{$url}";
+	entitybody = "{$entitybody}";
+	ext = "{$ext}";
+	=== Input Parameters ===
+	EOF;
 
-print "\n";
+	print "\n";
 
-print OAuth2MacTokenUtil::genetateAuthZHeader(
-                $key_id,
-                $key,
-                $algorithm,
-                $iss,
-                $nonce,
-                $method,
-                $url,
-                $entitybody,
-                $ext
-);
+	print OAuth2MacTokenUtil::genetateAuthZHeader(
+	                $key_id,
+	                $key,
+	                $algorithm,
+	                $iss,
+	                $nonce,
+	                $method,
+	                $url,
+	                $entitybody,
+	                $ext
+	);
 
 Sample is here.
 [sample.php](http://www8322u.sakura.ne.jp/php-OAuth2MacToken/sample.php)
