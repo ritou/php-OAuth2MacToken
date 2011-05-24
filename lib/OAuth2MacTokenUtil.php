@@ -43,6 +43,16 @@ class OAuth2MacTokenUtil {
 
     /**
      * Generate MAC String
+     * @param string $key_id MAC key identifier
+     * @param string $key MAC key
+     * @param string $algorithm MAC algorithm
+     * @param int $iss Issue time
+     * @param string $nonce
+     * @param string $method
+     * @param string $url
+     * @param string $bodyhash request payload body hash
+     * @param string $ext "ext" "Authorization" request header field attribute
+     * @return string
      */
     public static function generateMac($key_id, $key, $algorithm, $iss, $nonce=null, $method, $url, $bodyhash=null, $ext=null) {
 
@@ -121,7 +131,7 @@ class OAuth2MacTokenUtil {
     /**
      * Generate Signature String from Signature Base String
      * @param string $basestr
-     * @param string $secret
+     * @param string $key
      * @param string $algorithm
      * @return string
      */
@@ -146,11 +156,11 @@ class OAuth2MacTokenUtil {
 
     /**
      * Generate Authorization Header Request String from Paramaters
-     * @param string $token
-     * @param int $timestamp
+     * @param string $key_id
      * @param string $nonce
      * @param string $bodyhash
-     * @param string $signature
+     * @param string $ext
+     * @param string $mac
      * @return string
      */
     private static function _buildAuthZHeaderStr($key_id, $nonce, $bodyhash, $ext, $mac) {
